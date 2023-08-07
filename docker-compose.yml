@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  nginxproxymanager:
+    container_name: nginxproxymanager
+    image: jc21/nginx-proxy-manager:latest
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    restart: always
+    volumes:
+      - "~/server/nginxproxymanager/data:/data"
+      - "~/server/nginxproxymanager/letsencrypt:/etc/letsencrypt"
+
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-enterprise
+    restart: unless-stopped
+    user: '0'
+    ports:
+     - '3000:3000'
+    volumes:
+      - '~/server/grafana/data:/var/lib/grafana'
+
+  graphite-statsd:
+    container_name: graphite-statsd
+    image: graphiteapp/graphite-statsd
+    restart: always
+    ports:
+      - '88:80'
+      - '2003-2004:2003-2004'
+      - '2023-2024:2023-2024'
+      - '8125:8125/udp'
+      - '8126:8126'
+    volumes:
+      - "~/server/data/graphite/data:/opt/graphite/storage"
+      - "~/server/data/graphite/conf:/opt/graphite/conf"
+      - "~/server/data/graphite/statsd_config:/opt/statsd/config"
+      - "~/server/data/graphite/logs:/var/log"
+    environment:
+      - GRAPHITE_TIME_ZONE=Europe/Kyiv
+
+  metrics_reporter:
+    container_name: metrics-reporter
+    image: nbaidikoff/metrics-reporter
+    restart: unless-stopped
+    environment:
+      - STATSD_HOST=graphite-statsd
+      - STATSD_PORT=9125
+      - STATSD_PROTOCOL=udp
